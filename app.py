@@ -73,49 +73,50 @@ def generate_pdf(tse_df, ec_df, who_df):
     buf = BytesIO()
     with PdfPages(buf) as pdf:
         for title, df in [("TSE Sonuçları", tse_df), ("EC Sonuçları", ec_df), ("WHO Sonuçları", who_df)]:
-            fig, ax = plt.subplots(figsize=(13, 8))  # Daha geniş sayfa
+            fig, ax = plt.subplots(figsize=(15, 10))  
             ax.axis('off')
 
-            # Logo ekle
+            
             try:
                 logo = Image.open("mar_logo.png")
-                fig.figimage(logo, xo=40, yo=fig.bbox.ymax - 100, zoom=0.15)
+                fig.figimage(logo, xo=60, yo=fig.bbox.ymax - 120, zoom=0.17)
             except:
                 pass
 
-            # Başlıklar
-            fig.text(0.5, 0.94, "💧 İÇME SUYU KALİTE RAPORU", fontsize=22, ha="center", weight='bold')
-            fig.text(0.5, 0.90, title, fontsize=17, ha="center", weight='bold')
+            
+            fig.text(0.5, 0.95, "💧 İÇME SUYU KALİTE RAPORU", fontsize=26, ha="center", weight='bold')
+            fig.text(0.5, 0.91, title, fontsize=20, ha="center", weight='bold')
 
-            # Tablo oluştur
+           
             table = ax.table(
                 cellText=df.values,
                 colLabels=df.columns,
                 cellLoc='center',
                 loc='center',
-                colWidths=[0.4, 0.2, 0.25]  # Daha geniş oranlar
+                colWidths=[0.45, 0.25, 0.3] 
             )
 
             table.auto_set_font_size(False)
-            table.set_fontsize(12)  # Font büyüdü
+            table.set_fontsize(14)  
 
-            # Hücreleri düzenle
+            
             for key, cell in table.get_celld().items():
-                cell.set_linewidth(0.5)
-                if key[0] == 0:  # Başlık satırı
-                    cell.set_fontsize(13)
+                cell.set_linewidth(0.7)
+                cell.set_height(0.07)  
+                if key[0] == 0:  
+                    cell.set_fontsize(16)
                     cell.set_text_props(weight='bold')
                     cell.set_facecolor("#e0e0e0")
                 else:
                     durum = df.iloc[key[0] - 1, 2]
                     if durum == "Uygun":
-                        cell.set_facecolor("#d4edda")  # yeşil
+                        cell.set_facecolor("#d4edda")  
                     elif durum == "Sınırda":
-                        cell.set_facecolor("#fff3cd")  # sarı
+                        cell.set_facecolor("#fff3cd")  
                     elif durum == "Uygun Değil":
-                        cell.set_facecolor("#f8d7da")  # kırmızı
+                        cell.set_facecolor("#f8d7da")  
 
-            # Sayfayı PDF'e kaydet
+            
             pdf.savefig(fig, bbox_inches='tight')
             plt.close(fig)
 
