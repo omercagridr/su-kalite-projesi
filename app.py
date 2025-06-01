@@ -71,7 +71,7 @@ def generate_pdf(tse_df, ec_df, who_df):
     buf = BytesIO()
     with PdfPages(buf) as pdf:
         for title, df in [("TSE Sonuçları", tse_df), ("EC Sonuçları", ec_df), ("WHO Sonuçları", who_df)]:
-            fig, ax = plt.subplots(figsize=(12, 8))
+            fig, ax = plt.subplots(figsize=(12, 9))  # Daha fazla boşluk için yükseklik arttı
             ax.axis('off')
 
             try:
@@ -80,27 +80,28 @@ def generate_pdf(tse_df, ec_df, who_df):
             except:
                 pass
 
-            ax.text(0.5, 0.92, "İÇME SUYU KALİTE RAPORU", fontsize=18, ha="center", weight='bold')
-            ax.text(0.5, 0.86, title, fontsize=14, ha="center", weight='bold')
+            # Sayfa başlığı ve alt başlık
+            fig.text(0.5, 0.95, "💧 İÇME SUYU KALİTE RAPORU", fontsize=20, ha="center", weight='bold')
+            fig.text(0.5, 0.91, title, fontsize=16, ha="center", weight='bold')
 
+            # Tabloyu biraz aşağı al
             table = ax.table(cellText=df.values,
                              colLabels=df.columns,
                              cellLoc='center',
                              loc='center',
-                             colWidths=[0.3, 0.2, 0.2])
+                             colWidths=[0.35, 0.2, 0.25])
 
             table.auto_set_font_size(False)
-            table.set_fontsize(10)
+            table.set_fontsize(11)
 
-            # Stil: Başlıklar koyu, tüm hücreler hizalı
             for key, cell in table.get_celld().items():
                 cell.set_linewidth(0.5)
                 if key[0] == 0:
-                    cell.set_fontsize(11)
+                    cell.set_fontsize(12)
                     cell.set_text_props(weight='bold')
                     cell.set_facecolor("#f2f2f2")
                 else:
-                    durum = df.iloc[key[0]-1, 2]  # Durum kolonu
+                    durum = df.iloc[key[0]-1, 2]
                     if durum == "Uygun":
                         cell.set_facecolor("#d4edda")
                     elif durum == "Sınırda":
