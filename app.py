@@ -2,23 +2,22 @@ import streamlit as st
 import pandas as pd
 import requests
 
-URL = "https://raw.githubusercontent.com/omer12306/water-quality-standards/main/water-quality.csv"
-
 st.set_page_config(page_title="Su Kalite Testi", layout="wide")
 
-st.title("Su Kalite Testi")
+# Veri URL'si (CSV dosyası)
+URL = "https://dobisu.marmara.edu.tr/orta-menu/yararli-bilgiler/icme-suyu-kabul-edilebilir-degerler"
 
 @st.cache_data
 def fetch_limits():
-    tables = pd.read_html(URL, header=0)
-    df = tables[0]
+    df = pd.read_csv(URL)
+    # Sütun isimlerini düzenle
     df.rename(columns={df.columns[0]: "Parametre",
                        df.columns[1]: "TSE",
                        df.columns[2]: "EC",
                        df.columns[3]: "WHO"}, inplace=True)
     df = df.dropna(subset=["Parametre"]).reset_index(drop=True)
-    
-    # Gereksiz başlık/metin satırlarını çıkaralım
+
+    # İstenmeyen satırların filtrelenmesi
     drop_keywords = ["Kabul Edilebilir", "STANDARTLAR", "Fiziksel ve Duyusal",
                      "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat"]
     mask = ~df["Parametre"].str.contains("|".join(drop_keywords), na=False)
@@ -28,56 +27,70 @@ def fetch_limits():
 def parse_range(r):
     if pd.isna(r):
         return (None, None)
+    # Aralık örneği: "0,0 - 0,5" veya sadece tek sayı "0,5"
     r = str(r).strip()
     if "-" in r:
-        low, high = r.split("-", 1)
+        low, high = r.split("-")
         low = low.strip().replace(",", ".")
         high = high.strip().replace(",", ".")
-        try:
-            return (float(low), float(high))
-        except:
-            return (None, None)
+        return (float(low), float(high))
     else:
-        try:
-            return (0.0, float(r.replace(",", ".")))
-        except:
-            return (None, None)
+        val = r.replace(",", ".")
+        return (0.0, float(val))
 
-def judge(value, limits):
-    low, high = limits
-    if value is None or low is None or high is None:
+def judge(value, limit_range):
+    if value is None or limit_range == (None, None):
+        return "Veri Yok"
+    low, high = limit_range
+    if low is None or high is None:
         return "Veri Yok"
     if low <= value <= high:
-        return "Uygun ✅"
+        return "Uygun"
     else:
-        return "Uygun Değil ❌"
+        return "Uygun Değil"
+
+st.set_page_config(page_title="Su Kalite Testi", layout="wide")
+
+st.title("Su Kalite Testi")
 
 df_limits = fetch_limits()
 
-st.sidebar.header("Parametre Değerlerini Girin")
+# Kullanıcıdan değer girişi (parametreler için)
 input_values = {}
-for param in df_limits["Parametre"]:
-    val = st.sidebar.text_input(f"{param} değeri", "")
-    if val.strip() == "":
-        input_values[param] = None
-    else:
-        try:
-            input_values[param] = float(val.replace(",", "."))
-        except:
-            input_values[param] = None
+for p in df_limits["Parametre"]:
+    v = st.number_input(f"{p} değerini giriniz:", format="%.3f", key=p)
+    input_values[p] = v
 
-# Sonuçları tablo halinde göstermek için:
+st.write("---")
+
+# Tabloları üç sekmede göstermek için
 tabs = st.tabs(["TSE", "EC", "WHO"])
 
-for i, std in enumerate(["TSE", "EC", "WHO"]):
-    with tabs[i]:
-        results = []
-        for idx, row in df_limits.iterrows():
-            p = row["Parametre"]
-            v = input_values.get(p, None)
-            limits = parse_range(row[std])
-            status = judge(v, limits)
-            results.append({"Parametre": p, "Değer": v if v is not None else "-", "Durum": status})
-        st.table(pd.DataFrame(results))
+# Fonksiyon sonuçları için ortak yapı
+def create_results(column_name):
+    results = []
+    for i, row in df_limits.iterrows():
+        param = row["Parametre"]
+        user_val = input_values.get(param)
+        limit_range = parse_range(row[column_name])
+        durum = judge(user_val, limit_range)
+        results.append({"Parametre": param, "Değer": user_val, "Durum": durum})
+    return results
+
+results_tse = create_results("TSE")
+results_ec = create_results("EC")
+results_who = create_results("WHO")
+
+with tabs[0]:
+    st.subheader("TSE Sonuçları")
+    st.table(pd.DataFrame(results_tse))
+
+with tabs[1]:
+    st.subheader("EC Sonuçları")
+    st.table(pd.DataFrame(results_ec))
+
+with tabs[2]:
+    st.subheader("WHO Sonuçları")
+    st.table(pd.DataFrame(results_who))
 
 
