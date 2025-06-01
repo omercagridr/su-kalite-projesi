@@ -73,55 +73,54 @@ def generate_pdf(tse_df, ec_df, who_df):
     buf = BytesIO()
     with PdfPages(buf) as pdf:
         for title, df in [("TSE Sonuçları", tse_df), ("EC Sonuçları", ec_df), ("WHO Sonuçları", who_df)]:
-            fig, ax = plt.subplots(figsize=(15, 10))  
+            fig, ax = plt.subplots(figsize=(11.7, 8.3))  # A4 Landscape oranına yakın (sayfaya tam oturur)
             ax.axis('off')
 
-            
+            # Logo ekle
             try:
                 logo = Image.open("mar_logo.png")
-                fig.figimage(logo, xo=60, yo=fig.bbox.ymax - 120, zoom=0.17)
+                fig.figimage(logo, xo=40, yo=fig.bbox.ymax - 80, zoom=0.13)
             except:
                 pass
 
-            
-            fig.text(0.5, 0.95, "💧 İÇME SUYU KALİTE RAPORU", fontsize=26, ha="center", weight='bold')
-            fig.text(0.5, 0.91, title, fontsize=20, ha="center", weight='bold')
+            # Başlıklar (tablonun dışında üstte)
+            fig.text(0.5, 0.92, "💧 İÇME SUYU KALİTE RAPORU", fontsize=20, ha="center", weight='bold')
+            fig.text(0.5, 0.88, title, fontsize=16, ha="center", weight='bold')
 
-           
+            # Tablo oluştur (kolon genişliği optimize edildi)
             table = ax.table(
                 cellText=df.values,
                 colLabels=df.columns,
                 cellLoc='center',
                 loc='center',
-                colWidths=[0.45, 0.25, 0.3] 
+                colWidths=[0.4, 0.2, 0.25]
             )
 
             table.auto_set_font_size(False)
-            table.set_fontsize(14)  
+            table.set_fontsize(12)
 
-            
             for key, cell in table.get_celld().items():
-                cell.set_linewidth(0.7)
-                cell.set_height(0.07)  
-                if key[0] == 0:  
-                    cell.set_fontsize(16)
+                cell.set_linewidth(0.5)
+                cell.set_height(0.06)
+                if key[0] == 0:
+                    cell.set_fontsize(13)
                     cell.set_text_props(weight='bold')
-                    cell.set_facecolor("#e0e0e0")
+                    cell.set_facecolor("#f0f0f0")
                 else:
                     durum = df.iloc[key[0] - 1, 2]
                     if durum == "Uygun":
-                        cell.set_facecolor("#d4edda")  
+                        cell.set_facecolor("#d4edda")
                     elif durum == "Sınırda":
-                        cell.set_facecolor("#fff3cd")  
+                        cell.set_facecolor("#fff3cd")
                     elif durum == "Uygun Değil":
-                        cell.set_facecolor("#f8d7da")  
+                        cell.set_facecolor("#f8d7da")
 
-            
             pdf.savefig(fig, bbox_inches='tight')
             plt.close(fig)
 
     buf.seek(0)
     return buf
+
 
 
 st.title("💧 İçme Suyu Kalite Testi")
