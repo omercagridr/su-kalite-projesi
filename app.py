@@ -104,7 +104,7 @@ def generate_pdf(tse_df, ec_df, who_df):
                 cell.set_linewidth(0.5)
 
                 # Hücre yüksekliğini DAHA DA artır
-                cell.set_height(cell.get_height() + 0.04)  # Eskiden 0.015 idi
+                cell.set_height(cell.get_height() + 0.2)  # Eskiden 0.015 idi
 
                 cell.get_text().set_verticalalignment('center')
                 cell.get_text().set_horizontalalignment('center')
