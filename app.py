@@ -76,7 +76,15 @@ st.markdown("---")
 
 # Hesapla butonu
 if st.button("💡 Hesapla"):
-    tabs = st.tabs(["TSE", "EC", "WHO"])
+    st.markdown("## 📊 Sonuçlar")
+    st.markdown("Aşağıdan **TSE**, **EC** ve **WHO** standartlarına göre değerlendirme sonuçlarını görebilirsin.")
+
+    # Büyük ve göze çarpan sekmeler
+    tabs = st.tabs([
+        "🔬 **TSE 266 Standartları**", 
+        "🌍 **EC (Avrupa Komisyonu)**", 
+        "🩺 **WHO (Dünya Sağlık Örgütü)**"
+    ])
 
     def create_results(column_name):
         results = []
@@ -89,19 +97,20 @@ if st.button("💡 Hesapla"):
         return pd.DataFrame(results)
 
     with tabs[0]:
-        st.subheader("🧪 TSE Sonuçları")
+        st.markdown("### ✅ TSE Sonuçları")
         df = create_results("TSE")
-        st.dataframe(df.style.applymap(style_status, subset=["Durum"]))
+        st.dataframe(df.style.applymap(style_status, subset=["Durum"]), use_container_width=True)
 
     with tabs[1]:
-        st.subheader("🧪 EC Sonuçları")
+        st.markdown("### 🌍 EC Sonuçları")
         df = create_results("EC")
-        st.dataframe(df.style.applymap(style_status, subset=["Durum"]))
+        st.dataframe(df.style.applymap(style_status, subset=["Durum"]), use_container_width=True)
 
     with tabs[2]:
-        st.subheader("🧪 WHO Sonuçları")
+        st.markdown("### 🩺 WHO Sonuçları")
         df = create_results("WHO")
-        st.dataframe(df.style.applymap(style_status, subset=["Durum"]))
+        st.dataframe(df.style.applymap(style_status, subset=["Durum"]), use_container_width=True)
+
 
 
 
