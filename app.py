@@ -48,9 +48,13 @@ def parse_range(r):
         return (None, None)
 
 def judge(v, rng):
+    if v is None:
+        return "—"  # Değer girilmemişse bu işaret olsun
+    if rng == (None, None):
+        return "Veri yok"
     low, high = rng
-    if v is None or low is None or high is None:
-        return ""
+    if low is None or high is None:
+        return "Veri yok"
     if low <= v <= high:
         if (v - low) < 0.05 * (high - low) or (high - v) < 0.05 * (high - low):
             return "⚠️ Sınırda"
