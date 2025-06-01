@@ -20,7 +20,8 @@ def fetch_limits():
     df = df.dropna(subset=["Parametre"]).reset_index(drop=True)
 
     drop_keywords = ["Kabul Edilebilir", "STANDARTLAR", "Fiziksel ve Duyusal",
-                     "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat"]
+                     "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat","Siyanür (CN)","Selenyum (Se)","Antimon (Sb)",
+                     "C.perfringers","Pseudomonas Aeruginosa"]
     mask = ~df["Parametre"].str.contains("|".join(drop_keywords), na=False)
     df = df[mask].reset_index(drop=True)
     return df
