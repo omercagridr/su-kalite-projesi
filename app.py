@@ -86,11 +86,11 @@ def generate_pdf(tse_df, ec_df, who_df):
             fig.text(0.5, 0.91, title, fontsize=16, ha="center", weight='bold')
 
             # Hücre içeriğine padding efekti için boşluk karakterleri ekle
-            padded_values = df.applymap(lambda x: f"  {x}  ").values
+            padded_values = df.applymap(lambda x: f"   {x}   ").values
 
             table = ax.table(
                 cellText=padded_values,
-                colLabels=[f"  {col}  " for col in df.columns],  # Başlıklar da boşluklu
+                colLabels=[f"   {col}   " for col in df.columns],
                 cellLoc='center',
                 loc='upper center',
                 bbox=[0.03, 0.08, 0.94, 0.78],
@@ -102,9 +102,10 @@ def generate_pdf(tse_df, ec_df, who_df):
 
             for key, cell in table.get_celld().items():
                 cell.set_linewidth(0.5)
-                cell.set_height(cell.get_height() + 0.015)  # Satır yüksekliğini artır
 
-                # Hücre içi yazıyı ortala (güzel görünüm)
+                # Hücre yüksekliğini DAHA DA artır
+                cell.set_height(cell.get_height() + 0.04)  # Eskiden 0.015 idi
+
                 cell.get_text().set_verticalalignment('center')
                 cell.get_text().set_horizontalalignment('center')
 
@@ -126,6 +127,7 @@ def generate_pdf(tse_df, ec_df, who_df):
 
     buf.seek(0)
     return buf
+
 
 
 
