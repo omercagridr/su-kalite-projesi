@@ -76,7 +76,7 @@ def generate_pdf(tse_df, ec_df, who_df):
             ax.axis('off')
 
             try:
-                logo = Image.open("logo.png")
+                logo = Image.open("mar_logo.png")
                 fig.figimage(logo, xo=40, yo=fig.bbox.ymax - 100, zoom=0.15)
             except:
                 pass
