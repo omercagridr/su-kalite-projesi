@@ -3,20 +3,16 @@ import pandas as pd
 
 st.set_page_config(page_title="Su Kalite Testi", layout="wide")
 
-# CSV dosya yolu (aynı klasörde su_kalite_standartlari.csv olmalı)
 CSV_FILE = "su_kalite_standartlari.txt"
 
 @st.cache_data
 def fetch_limits():
     df = pd.read_csv(CSV_FILE)
-    # Sütun isimlerini düzenle (CSV zaten uygun ama garanti için)
     df.rename(columns={df.columns[0]: "Parametre",
                        df.columns[1]: "TSE",
                        df.columns[2]: "EC",
                        df.columns[3]: "WHO"}, inplace=True)
     df = df.dropna(subset=["Parametre"]).reset_index(drop=True)
-
-    # İstenmeyen satırları filtreleyelim
     drop_keywords = ["Kabul Edilebilir", "STANDARTLAR", "Fiziksel ve Duyusal",
                      "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat"]
     mask = ~df["Parametre"].str.contains("|".join(drop_keywords), na=False)
@@ -49,48 +45,63 @@ def judge(value, limit_range):
     if low is None or high is None:
         return "Veri Yok"
     if low <= value <= high:
+        if (value - low) < 0.05 * (high - low) or (high - value) < 0.05 * (high - low):
+            return "Sınırda"
         return "Uygun"
-    else:
-        return "Uygun Değil"
+    return "Uygun Değil"
 
-st.title("Su Kalite Testi")
+def style_status(val):
+    if "Uygun Değil" in val:
+        return "background-color:#ffcccc; color:black;"
+    elif "Sınırda" in val:
+        return "background-color:#fff3cd; color:black;"
+    elif "Uygun" in val:
+        return "background-color:#d4edda; color:black;"
+    else:
+        return ""
+
+st.title("💧 Su Kalite Testi")
 
 df_limits = fetch_limits()
 
-# Kullanıcıdan parametre değerlerini al
+# Giriş alanları: 4 sütun olarak
+st.markdown("### 🔢 Değerleri Giriniz")
 input_values = {}
-for p in df_limits["Parametre"]:
-    v = st.number_input(f"{p} değerini giriniz:", format="%.3f", key=p)
-    input_values[p] = v
+cols = st.columns(4)
+for i, p in enumerate(df_limits["Parametre"]):
+    with cols[i % 4]:
+        input_values[p] = st.number_input(f"{p}:", format="%.3f", key=p)
 
-st.write("---")
+st.markdown("---")
 
-tabs = st.tabs(["TSE", "EC", "WHO"])
+# Hesapla butonu
+if st.button("💡 Hesapla"):
+    tabs = st.tabs(["TSE", "EC", "WHO"])
 
-def create_results(column_name):
-    results = []
-    for _, row in df_limits.iterrows():
-        param = row["Parametre"]
-        user_val = input_values.get(param)
-        limit_range = parse_range(row[column_name])
-        durum = judge(user_val, limit_range)
-        results.append({"Parametre": param, "Değer": user_val, "Durum": durum})
-    return results
+    def create_results(column_name):
+        results = []
+        for _, row in df_limits.iterrows():
+            param = row["Parametre"]
+            user_val = input_values.get(param)
+            limit_range = parse_range(row[column_name])
+            durum = judge(user_val, limit_range)
+            results.append({"Parametre": param, "Değer": user_val, "Durum": durum})
+        return pd.DataFrame(results)
 
-results_tse = create_results("TSE")
-results_ec = create_results("EC")
-results_who = create_results("WHO")
+    with tabs[0]:
+        st.subheader("🧪 TSE Sonuçları")
+        df = create_results("TSE")
+        st.dataframe(df.style.applymap(style_status, subset=["Durum"]))
 
-with tabs[0]:
-    st.subheader("TSE Sonuçları")
-    st.table(pd.DataFrame(results_tse))
+    with tabs[1]:
+        st.subheader("🧪 EC Sonuçları")
+        df = create_results("EC")
+        st.dataframe(df.style.applymap(style_status, subset=["Durum"]))
 
-with tabs[1]:
-    st.subheader("EC Sonuçları")
-    st.table(pd.DataFrame(results_ec))
+    with tabs[2]:
+        st.subheader("🧪 WHO Sonuçları")
+        df = create_results("WHO")
+        st.dataframe(df.style.applymap(style_status, subset=["Durum"]))
 
-with tabs[2]:
-    st.subheader("WHO Sonuçları")
-    st.table(pd.DataFrame(results_who))
 
 
