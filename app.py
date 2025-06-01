@@ -72,7 +72,7 @@ def generate_pdf(tse_df, ec_df, who_df):
     buf = BytesIO()
     with PdfPages(buf) as pdf:
         for title, df in [("TSE Sonuçları", tse_df), ("EC Sonuçları", ec_df), ("WHO Sonuçları", who_df)]:
-            fig, ax = plt.subplots(figsize=(12, 9))  # Daha fazla boşluk için yükseklik arttı
+            fig, ax = plt.subplots(figsize=(12, 9))  
             ax.axis('off')
 
             try:
@@ -81,11 +81,11 @@ def generate_pdf(tse_df, ec_df, who_df):
             except:
                 pass
 
-            # Sayfa başlığı ve alt başlık
+            
             fig.text(0.5, 0.95, "💧 İÇME SUYU KALİTE RAPORU", fontsize=20, ha="center", weight='bold')
             fig.text(0.5, 0.91, title, fontsize=16, ha="center", weight='bold')
 
-            # Tabloyu biraz aşağı al
+            
             table = ax.table(cellText=df.values,
                              colLabels=df.columns,
                              cellLoc='center',
@@ -116,7 +116,6 @@ def generate_pdf(tse_df, ec_df, who_df):
     buf.seek(0)
     return buf
 
-# ---------------------- UYGULAMA ---------------------- #
 
 st.title("💧 İçme Suyu Kalite Testi")
 st.caption("📌 Lütfen sadece sayısal değer giriniz. Boş bırakabilirsiniz.")
