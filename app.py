@@ -72,33 +72,40 @@ def generate_pdf(tse_df, ec_df, who_df):
     buf = BytesIO()
     with PdfPages(buf) as pdf:
         for title, df in [("TSE Sonuçları", tse_df), ("EC Sonuçları", ec_df), ("WHO Sonuçları", who_df)]:
-            fig, ax = plt.subplots(figsize=(12, 9))  
+            fig, ax = plt.subplots(figsize=(13, 9))  # Daha geniş PDF
             ax.axis('off')
 
             try:
                 logo = Image.open("mar_logo.png")
-                fig.figimage(logo, xo=40, yo=fig.bbox.ymax - 100, zoom=0.15)
+                fig.figimage(logo, xo=40, yo=fig.bbox.ymax - 80, zoom=0.13)
             except:
                 pass
 
-            
+            # Başlıklar
             fig.text(0.5, 0.95, "💧 İÇME SUYU KALİTE RAPORU", fontsize=20, ha="center", weight='bold')
             fig.text(0.5, 0.91, title, fontsize=16, ha="center", weight='bold')
 
-            
-            table = ax.table(cellText=df.values,
-                             colLabels=df.columns,
-                             cellLoc='center',
-                             loc='center',
-                             colWidths=[0.35, 0.2, 0.25])
+            # Tablo - biraz daha geniş, yazı küçük, hücre büyük = padding etkisi
+            table = ax.table(
+                cellText=df.values,
+                colLabels=df.columns,
+                cellLoc='center',
+                loc='upper center',
+                bbox=[0.03, 0.08, 0.94, 0.78],  # geniş tablo alanı
+                colWidths=[0.35, 0.2, 0.25]
+            )
 
             table.auto_set_font_size(False)
-            table.set_fontsize(11)
+            table.set_fontsize(11.5)  # Yazı küçüldü = boşluk efekti
 
             for key, cell in table.get_celld().items():
-                cell.set_linewidth(0.5)
+                cell.set_linewidth(0.6)
+
+                # Hücrelerin yüksekliğini artır (padding efekti)
+                cell.set_height(cell.get_height() + 0.015)
+
                 if key[0] == 0:
-                    cell.set_fontsize(12)
+                    cell.set_fontsize(13)
                     cell.set_text_props(weight='bold')
                     cell.set_facecolor("#f2f2f2")
                 else:
@@ -115,6 +122,8 @@ def generate_pdf(tse_df, ec_df, who_df):
 
     buf.seek(0)
     return buf
+
+
 
 st.title("💧 İçme Suyu Kalite Testi")
 st.caption("📌 Lütfen sadece sayısal değer giriniz. Boş bırakabilirsiniz.")
