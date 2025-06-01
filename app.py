@@ -1,9 +1,15 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from io import BytesIO
+from PIL import Image
+import base64
 
 st.set_page_config(page_title="Su Kalite Testi", layout="wide")
 
 CSV_FILE = "su_kalite_standartlari.txt"
+LOGO_PATH = "mar_logo.png"  # Bu logo dosyasını uygulama klasörüne koy
 
 @st.cache_data
 def fetch_limits():
@@ -13,6 +19,7 @@ def fetch_limits():
                        df.columns[2]: "EC",
                        df.columns[3]: "WHO"}, inplace=True)
     df = df.dropna(subset=["Parametre"]).reset_index(drop=True)
+
     drop_keywords = ["Kabul Edilebilir", "STANDARTLAR", "Fiziksel ve Duyusal",
                      "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat"]
     mask = ~df["Parametre"].str.contains("|".join(drop_keywords), na=False)
@@ -45,46 +52,30 @@ def judge(value, limit_range):
     if low is None or high is None:
         return "Veri Yok"
     if low <= value <= high:
-        if (value - low) < 0.05 * (high - low) or (high - value) < 0.05 * (high - low):
+        diff = high - low
+        if (value - low) < 0.05 * diff or (high - value) < 0.05 * diff:
             return "Sınırda"
         return "Uygun"
-    return "Uygun Değil"
-
-def style_status(val):
-    if "Uygun Değil" in val:
-        return "background-color:#ffcccc; color:black;"
-    elif "Sınırda" in val:
-        return "background-color:#fff3cd; color:black;"
-    elif "Uygun" in val:
-        return "background-color:#d4edda; color:black;"
     else:
-        return ""
-
-st.title("💧 Su Kalite Testi")
+        return "Uygun Değil"
 
 df_limits = fetch_limits()
 
-# Giriş alanları: 4 sütun olarak
-st.markdown("### 🔢 Değerleri Giriniz")
+st.title("💧 Su Kalite Testi")
+st.markdown("🛠️ **Lütfen sadece sayısal değerleri girin. Bilinmeyenleri boş bırakabilirsiniz.**")
+
+# Giriş alanları 4 sütun halinde
 input_values = {}
 cols = st.columns(4)
-for i, p in enumerate(df_limits["Parametre"]):
+for i, param in enumerate(df_limits["Parametre"]):
     with cols[i % 4]:
-        input_values[p] = st.number_input(f"{p}:", format="%.3f", key=p)
+        v = st.number_input(f"{param}", format="%.3f", key=param)
+        input_values[param] = v
 
-st.markdown("---")
+st.write("---")
 
-# Hesapla butonu
 if st.button("💡 Hesapla"):
-    st.markdown("## 📊 Sonuçlar")
-    st.markdown("Aşağıdan **TSE**, **EC** ve **WHO** standartlarına göre değerlendirme sonuçlarını görebilirsin.")
-
-    # Büyük ve göze çarpan sekmeler
-    tabs = st.tabs([
-        "🔬 **TSE 266 Standartları**", 
-        "🌍 **EC (Avrupa Komisyonu)**", 
-        "🩺 **WHO (Dünya Sağlık Örgütü)**"
-    ])
+    tabs = st.tabs(["TSE", "EC", "WHO"])
 
     def create_results(column_name):
         results = []
@@ -96,20 +87,82 @@ if st.button("💡 Hesapla"):
             results.append({"Parametre": param, "Değer": user_val, "Durum": durum})
         return pd.DataFrame(results)
 
+    def color_row(val):
+        if val == "Uygun":
+            return "background-color: #d4edda"  # Yeşil
+        elif val == "Sınırda":
+            return "background-color: #fff3cd"  # Sarı
+        elif val == "Uygun Değil":
+            return "background-color: #f8d7da"  # Kırmızı
+        else:
+            return ""
+
+    df_tse = create_results("TSE")
+    df_ec = create_results("EC")
+    df_who = create_results("WHO")
+
     with tabs[0]:
-        st.markdown("### ✅ TSE Sonuçları")
-        df = create_results("TSE")
-        st.dataframe(df.style.applymap(style_status, subset=["Durum"]), use_container_width=True)
+        st.subheader("📋 TSE 266 Sonuçları")
+        st.dataframe(df_tse.style.applymap(color_row, subset=["Durum"]))
 
     with tabs[1]:
-        st.markdown("### 🌍 EC Sonuçları")
-        df = create_results("EC")
-        st.dataframe(df.style.applymap(style_status, subset=["Durum"]), use_container_width=True)
+        st.subheader("📋 EC (Avrupa Komisyonu) Sonuçları")
+        st.dataframe(df_ec.style.applymap(color_row, subset=["Durum"]))
 
     with tabs[2]:
-        st.markdown("### 🩺 WHO Sonuçları")
-        df = create_results("WHO")
-        st.dataframe(df.style.applymap(style_status, subset=["Durum"]), use_container_width=True)
+        st.subheader("📋 WHO (Dünya Sağlık Örgütü) Sonuçları")
+        st.dataframe(df_who.style.applymap(color_row, subset=["Durum"]))
+
+    # PDF oluşturucu
+    def create_pdf(df1, df2, df3):
+        buf = BytesIO()
+        with PdfPages(buf) as pdf:
+            fig, ax = plt.subplots(figsize=(8.3, 11.7))  # A4 boyut
+            ax.axis("off")
+
+            y_pos = 1.0
+
+            # Logo ekle
+            try:
+                logo = Image.open(LOGO_PATH)
+                fig.figimage(logo, 50, 750, zorder=1, alpha=0.7)
+            except:
+                pass  # Logo yoksa geç
+
+            ax.text(0.5, y_pos, "Su Kalitesi Test Raporu", ha='center', fontsize=18, weight='bold')
+            y_pos -= 0.05
+
+            def draw_table(ax, df, title, ypos):
+                ax.text(0.5, ypos, title, ha='center', fontsize=14, weight='bold')
+                ypos -= 0.03
+                table = ax.table(cellText=df.values,
+                                 colLabels=df.columns,
+                                 loc='center',
+                                 cellLoc='center')
+                table.scale(1, 1.2)
+                ax.set_xlim(0, 1)
+                ax.set_ylim(0, 1)
+                return ypos - 0.3
+
+            y_pos = draw_table(ax, df1, "TSE 266 Sonuçları", y_pos - 0.05)
+            y_pos = draw_table(ax, df2, "EC (Avrupa Komisyonu) Sonuçları", y_pos - 0.05)
+            draw_table(ax, df3, "WHO (Dünya Sağlık Örgütü) Sonuçları", y_pos - 0.05)
+
+            pdf.savefig(fig, bbox_inches='tight')
+            plt.close(fig)
+
+        buf.seek(0)
+        return buf
+
+    pdf_buffer = create_pdf(df_tse, df_ec, df_who)
+
+    st.download_button(
+        label="📥 Tüm Sonuçları PDF Olarak İndir",
+        data=pdf_buffer,
+        file_name="su_kalite_sonuclari.pdf",
+        mime="application/pdf"
+    )
+
 
 
 
