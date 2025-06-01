@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
-import requests
 
-# Sayfa ayarları en başta olmalı
 st.set_page_config(page_title="Su Kalite Testi", layout="wide")
 
 URL = "https://dobisu.marmara.edu.tr/orta-menu/yararli-bilgiler/icme-suyu-kabul-edilebilir-degerler"
@@ -10,7 +8,7 @@ URL = "https://dobisu.marmara.edu.tr/orta-menu/yararli-bilgiler/icme-suyu-kabul-
 @st.cache_data
 def fetch_limits():
     tables = pd.read_html(URL, header=0)
-    df = tables[0]  
+    df = tables[0]
     df.rename(columns={df.columns[0]: "Parametre",
                        df.columns[1]: "TSE",
                        df.columns[2]: "EC",
@@ -25,29 +23,35 @@ st.write("🛠️ Değeri olmayan kutuyu boş bırak, sadece sayısal değer gir
 
 user_vals = {}
 cols = st.columns(4)
-
 for i, row in limits_df.iterrows():
     param = row["Parametre"]
     with cols[i % 4]:
-        user_vals[param] = st.number_input(
-            param, key=param, format="%.4f",
-            help=f"Limitler: TSE={row['TSE']}  EC={row['EC']}  WHO={row['WHO']}",
-            label_visibility="visible",
-            step=0.0001
-        )
+        user_vals[param] = st.number_input(param, key=param, format="%.4f",
+                                           help=f"Limitler: TSE={row['TSE']}  EC={row['EC']}  WHO={row['WHO']}")
 
 def parse_range(r):
-    if pd.isna(r): 
+    if pd.isna(r):
         return (None, None)
-    if "-" in str(r):
-        low, high = str(r).replace(",", ".").split("-")
-        return (float(low), float(high))
+    r_str = str(r).replace(",", ".").strip()
+    if r_str == "" or r_str.lower() == "nan":
+        return (None, None)
+    if "-" in r_str:
+        try:
+            low, high = r_str.split("-")
+            return (float(low), float(high))
+        except:
+            return (None, None)
     else:
-        return (0.0, float(str(r).replace(",", ".")))
+        try:
+            return (0.0, float(r_str))
+        except:
+            return (None, None)
 
 def judge(v, rng):
+    if v is None or rng == (None, None):
+        return ""
     low, high = rng
-    if v is None or (v == 0 and v != 0):
+    if low is None or high is None:
         return ""
     if low <= v <= high:
         if (v - low) < 0.05 * (high - low) or (high - v) < 0.05 * (high - low):
@@ -63,20 +67,18 @@ if st.button("💡 Hesapla"):
         tse_res = judge(v, parse_range(row["TSE"]))
         ec_res  = judge(v, parse_range(row["EC"]))
         who_res = judge(v, parse_range(row["WHO"]))
-        results.append({
-            "Parametre": p,
-            "Değer": v,
-            "TSE 266": tse_res,
-            "EC": ec_res,
-            "WHO": who_res
-        })
+        results.append({"Parametre": p,
+                        "Değer": v,
+                        "TSE 266": tse_res,
+                        "EC": ec_res,
+                        "WHO": who_res})
     out_df = pd.DataFrame(results)
     st.dataframe(out_df.style.applymap(
         lambda x: "background-color:#ffcccc" if "❌" in str(x)
         else ("background-color:#fff3cd" if "⚠️" in str(x)
-              else ("background-color:#d4edda" if "✅" in str(x) else ""))
-    ))
+              else ("background-color:#d4edda" if "✅" in str(x) else ""))))
     st.success("Rapor hazır! Yukarıdaki tabloyu CSV olarak indirebilirsin (⋮ menüsü).")
+
 
 
 
