@@ -4,8 +4,6 @@ Koliform,0,0,0
 Esherichia Coli (E.Coli),0,0,0
 Toplam Koloni Sayısı (22C'),500,500,500
 Toplam Koloni Sayısı (37C'),100,100,100
-C.perfringers,0,0,0
-Pseudomonas Aeruginosa,0,0,0
 pH,6.5 - 9.5,6.5 - 9.5,6.5 - 8.5
 İletkenlik 20' (uS/cm),2500,2500,NA
 Nitrat (NO3),50,50,50
@@ -19,11 +17,8 @@ Krom Toplam (Cr),0.05,0.05,0.05
 Baryum,1,1,0.7
 Florür (F),1.5,1.5,1.5
 Kurşun (Pb),0.01,0.01,0.01
-Siyanür (CN),0.07,0.07,0.07
 Bromat (Br),0.01,0.01,0.01
 Benzen (C6H6),0.01,0.01,0.01
-Selenyum (Se),0.01,0.01,0.01
-Antimon (Sb),0.005,0.005,0.005
 Bakır (Cu),2,2,2
 Fosfor,,,
 Demir (Fe),0.3,0.3,0.3
