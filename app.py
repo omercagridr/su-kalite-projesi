@@ -4,7 +4,7 @@ import pandas as pd
 st.set_page_config(page_title="Su Kalite Testi", layout="wide")
 
 # CSV dosya yolu (aynı klasörde su_kalite_standartlari.csv olmalı)
-CSV_FILE = "su_kalite_standartlari.csv"
+CSV_FILE = "su_kalite_standartlari.csv.txt"
 
 @st.cache_data
 def fetch_limits():
