@@ -30,18 +30,22 @@ for i, row in limits_df.iterrows():
     with cols[i % 4]:
         user_vals[param] = st.number_input(param, key=param, format="%.4f",
                                            help=f"Limitler: TSE={row['TSE']}  EC={row['EC']}  WHO={row['WHO']}")
-
 def parse_range(r):
-    if pd.isna(r): 
+    if pd.isna(r):
         return (None, None)
-    if "-" in str(r):
-        low, high = str(r).replace(",", ".").split("-")
-        return (float(low), float(high))
-    else:
-        try:
-            return (0.0, float(str(r).replace(",", ".")))
-        except:
-            return (None, None)
+    try:
+        s = str(r).replace(",", ".").strip()
+        if "-" in s:
+            low_str, high_str = s.split("-")
+            low = float(low_str)
+            high = float(high_str)
+            return (low, high)
+        else:
+            # Tek değer varsa, düşük sınırı 0 kabul edelim
+            high = float(s)
+            return (0.0, high)
+    except Exception:
+        return (None, None)
 
 def judge(v, rng):
     low, high = rng
