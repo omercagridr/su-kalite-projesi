@@ -3,47 +3,25 @@ import pandas as pd
 
 st.set_page_config(page_title="Su Kalite Testi", layout="wide")
 
-URL = "https://dobisu.marmara.edu.tr/orta-menu/yararli-bilgiler/icme-suyu-kabul-edilebilir-degerler"
+# CSV dosya yolu (aynı klasörde su_kalite_standartlari.csv olmalı)
+CSV_FILE = "su_kalite_standartlari.csv"
 
 @st.cache_data
 def fetch_limits():
-    # Sayfadaki tüm tabloları çek
-    tables = pd.read_html(URL)
-    
-    # İlk tabloyu (TSE) dataframe olarak al
-    df_tse = tables[0]
-    df_ec = tables[1]
-    df_who = tables[2]
-    
-    # Burada sadece ilk tabloyu baz alarak işleyelim
-    # Parametre kolonuna göre filtreleme yapacağız
-    
-    # Parametre listesini ortak alalım (hepsi aynı sırada ve isimde)
-    parametreler = df_tse.iloc[:,0].tolist()
-    
-    # Fonksiyon ile tabloları düzenle
-    def clean_table(df):
-        df = df.rename(columns={df.columns[0]: "Parametre",
-                                df.columns[1]: "Değer"})
-        df = df.dropna(subset=["Parametre"])
-        drop_keywords = ["Kabul Edilebilir", "STANDARTLAR", "Fiziksel ve Duyusal",
-                         "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat"]
-        mask = ~df["Parametre"].str.contains("|".join(drop_keywords), na=False)
-        df = df[mask].reset_index(drop=True)
-        return df
-    
-    df_tse_clean = clean_table(df_tse)
-    df_ec_clean = clean_table(df_ec)
-    df_who_clean = clean_table(df_who)
-    
-    # Birleştirirken sadece Parametre ve değer sütunlarını alıyoruz
-    df_limits = pd.DataFrame({
-        "Parametre": df_tse_clean["Parametre"],
-        "TSE": df_tse_clean["Değer"],
-        "EC": df_ec_clean["Değer"],
-        "WHO": df_who_clean["Değer"],
-    })
-    return df_limits
+    df = pd.read_csv(CSV_FILE)
+    # Sütun isimlerini düzenle (CSV zaten uygun ama garanti için)
+    df.rename(columns={df.columns[0]: "Parametre",
+                       df.columns[1]: "TSE",
+                       df.columns[2]: "EC",
+                       df.columns[3]: "WHO"}, inplace=True)
+    df = df.dropna(subset=["Parametre"]).reset_index(drop=True)
+
+    # İstenmeyen satırları filtreleyelim
+    drop_keywords = ["Kabul Edilebilir", "STANDARTLAR", "Fiziksel ve Duyusal",
+                     "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat"]
+    mask = ~df["Parametre"].str.contains("|".join(drop_keywords), na=False)
+    df = df[mask].reset_index(drop=True)
+    return df
 
 def parse_range(r):
     if pd.isna(r):
@@ -58,9 +36,9 @@ def parse_range(r):
         except:
             return (None, None)
     else:
-        val = r.replace(",", ".")
         try:
-            return (0.0, float(val))
+            val = float(r.replace(",", "."))
+            return (0.0, val)
         except:
             return (None, None)
 
@@ -79,7 +57,7 @@ st.title("Su Kalite Testi")
 
 df_limits = fetch_limits()
 
-# Kullanıcıdan parametre bazında değer al
+# Kullanıcıdan parametre değerlerini al
 input_values = {}
 for p in df_limits["Parametre"]:
     v = st.number_input(f"{p} değerini giriniz:", format="%.3f", key=p)
@@ -91,7 +69,7 @@ tabs = st.tabs(["TSE", "EC", "WHO"])
 
 def create_results(column_name):
     results = []
-    for i, row in df_limits.iterrows():
+    for _, row in df_limits.iterrows():
         param = row["Parametre"]
         user_val = input_values.get(param)
         limit_range = parse_range(row[column_name])
