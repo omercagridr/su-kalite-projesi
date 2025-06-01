@@ -70,28 +70,47 @@ def color_code(val):
 def generate_pdf(tse_df, ec_df, who_df):
     buf = BytesIO()
     with PdfPages(buf) as pdf:
-        fig, ax = plt.subplots(figsize=(12, 15))
-        ax.axis('off')
-
-        try:
-            logo = Image.open("logo.png")
-            fig.figimage(logo, xo=30, yo=fig.bbox.ymax - 100, zoom=0.15)
-        except:
-            pass  # logo yoksa atla
-
-        y = 0.95
-        ax.text(0.5, y, "İÇME SUYU KALİTE RAPORU", fontsize=20, ha="center", weight='bold')
-        y -= 0.05
-
         for title, df in [("TSE Sonuçları", tse_df), ("EC Sonuçları", ec_df), ("WHO Sonuçları", who_df)]:
-            ax.text(0.5, y, title, fontsize=14, ha="center", weight='bold')
-            y -= 0.01
-            table = ax.table(cellText=df.values, colLabels=df.columns, loc="center", cellLoc='center', bbox=[0.05, y - 0.18, 0.9, 0.17])
-            table.auto_set_font_size(False)
-            table.set_fontsize(8)
-            y -= 0.22
+            fig, ax = plt.subplots(figsize=(12, 8))
+            ax.axis('off')
 
-        pdf.savefig(fig, bbox_inches='tight')
+            try:
+                logo = Image.open("logo.png")
+                fig.figimage(logo, xo=40, yo=fig.bbox.ymax - 100, zoom=0.15)
+            except:
+                pass
+
+            ax.text(0.5, 0.92, "İÇME SUYU KALİTE RAPORU", fontsize=18, ha="center", weight='bold')
+            ax.text(0.5, 0.86, title, fontsize=14, ha="center", weight='bold')
+
+            table = ax.table(cellText=df.values,
+                             colLabels=df.columns,
+                             cellLoc='center',
+                             loc='center',
+                             colWidths=[0.3, 0.2, 0.2])
+
+            table.auto_set_font_size(False)
+            table.set_fontsize(10)
+
+            # Stil: Başlıklar koyu, tüm hücreler hizalı
+            for key, cell in table.get_celld().items():
+                cell.set_linewidth(0.5)
+                if key[0] == 0:
+                    cell.set_fontsize(11)
+                    cell.set_text_props(weight='bold')
+                    cell.set_facecolor("#f2f2f2")
+                else:
+                    durum = df.iloc[key[0]-1, 2]  # Durum kolonu
+                    if durum == "Uygun":
+                        cell.set_facecolor("#d4edda")
+                    elif durum == "Sınırda":
+                        cell.set_facecolor("#fff3cd")
+                    elif durum == "Uygun Değil":
+                        cell.set_facecolor("#f8d7da")
+
+            pdf.savefig(fig, bbox_inches='tight')
+            plt.close(fig)
+
     buf.seek(0)
     return buf
 
