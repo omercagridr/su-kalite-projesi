@@ -101,7 +101,7 @@ def generate_pdf(tse_df, ec_df, who_df):
             table.set_fontsize(11)
 
             for key, cell in table.get_celld().items():
-                cell.set_linewidth(0.5)
+                cell.set_linewidth(0.7)
 
                 # Hücre yüksekliğini DAHA DA artır
                 cell.set_height(cell.get_height() + 0.5)  # Eskiden 0.015 idi
