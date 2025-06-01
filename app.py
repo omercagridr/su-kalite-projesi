@@ -1,9 +1,12 @@
 import streamlit as st
 import pandas as pd
+import requests
+
+URL = "https://raw.githubusercontent.com/omer12306/water-quality-standards/main/water-quality.csv"
 
 st.set_page_config(page_title="Su Kalite Testi", layout="wide")
 
-URL = "https://dobisu.marmara.edu.tr/orta-menu/yararli-bilgiler/icme-suyu-kabul-edilebilir-degerler"
+st.title("Su Kalite Testi")
 
 @st.cache_data
 def fetch_limits():
@@ -14,94 +17,67 @@ def fetch_limits():
                        df.columns[2]: "EC",
                        df.columns[3]: "WHO"}, inplace=True)
     df = df.dropna(subset=["Parametre"]).reset_index(drop=True)
+    
+    # Gereksiz başlık/metin satırlarını çıkaralım
+    drop_keywords = ["Kabul Edilebilir", "STANDARTLAR", "Fiziksel ve Duyusal",
+                     "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat"]
+    mask = ~df["Parametre"].str.contains("|".join(drop_keywords), na=False)
+    df = df[mask].reset_index(drop=True)
     return df
-
-limits_df = fetch_limits()
-
-# Debug için çekilen limitlerin durumunu göster
-st.write("Limits DF ilk 5 satır")
-st.dataframe(limits_df.head())
-
-st.write("TSE sütunundaki veriler:")
-st.write(limits_df["TSE"].tolist())
-
-st.write("EC sütunundaki veriler:")
-st.write(limits_df["EC"].tolist())
-
-st.write("WHO sütunundaki veriler:")
-st.write(limits_df["WHO"].tolist())
-
-st.title("💧 İçme Suyu Kalite Testi")
-st.write("🛠️ Değeri olmayan kutuyu boş bırak, sadece sayısal değer gir.")
-
-user_vals = {}
-cols = st.columns(4)
-for i, row in limits_df.iterrows():
-    param = row["Parametre"]
-    with cols[i % 4]:
-        user_vals[param] = st.number_input(param, key=param, format="%.4f",
-                                           help=f"Limitle: TSE={row['TSE']}  EC={row['EC']}  WHO={row['WHO']}")
 
 def parse_range(r):
     if pd.isna(r):
         return (None, None)
-    s = str(r).strip().replace(",", ".")
-    if s in ["-", "ND", "N/A", "—", ""]:
-        return (None, None)
-    try:
-        if "-" in s:
-            parts = s.split("-")
-            low = float(parts[0].strip())
-            high = float(parts[1].strip())
-            return (low, high)
-        else:
-            high = float(s)
-            return (0.0, high)
-    except Exception as e:
-        st.write(f"Hata parse_range'de: {e} -- girdi: {r}")
-        return (None, None)
+    r = str(r).strip()
+    if "-" in r:
+        low, high = r.split("-", 1)
+        low = low.strip().replace(",", ".")
+        high = high.strip().replace(",", ".")
+        try:
+            return (float(low), float(high))
+        except:
+            return (None, None)
+    else:
+        try:
+            return (0.0, float(r.replace(",", ".")))
+        except:
+            return (None, None)
 
-def judge(v, rng):
-    low, high = rng
-    if v is None or (v == 0 and v != 0):  # Bu satır biraz garip ama senin koddan aynen aldım
-        return ""
-    if low is None or high is None:
-        return "⚠️ Limit yok"
-    if low <= v <= high:
-        if (v - low) < 0.05 * (high - low) or (high - v) < 0.05 * (high - low):
-            return "⚠️ Sınırda"
-        return "✅ Uygun"
-    return "❌ Uygun Değil"
+def judge(value, limits):
+    low, high = limits
+    if value is None or low is None or high is None:
+        return "Veri Yok"
+    if low <= value <= high:
+        return "Uygun ✅"
+    else:
+        return "Uygun Değil ❌"
 
-if st.button("💡 Hesapla"):
-    results_tse = []
-    results_ec = []
-    results_who = []
-    for _, row in limits_df.iterrows():
-        p = row["Parametre"]
-        v = user_vals[p]
-        tse_rng = parse_range(row["TSE"])
-        ec_rng = parse_range(row["EC"])
-        who_rng = parse_range(row["WHO"])
+df_limits = fetch_limits()
 
-        if tse_rng == (None, None):
-            st.write(f"TSE limiti yok veya okunamadı: {p} -> {row['TSE']}")
-        if ec_rng == (None, None):
-            st.write(f"EC limiti yok veya okunamadı: {p} -> {row['EC']}")
+st.sidebar.header("Parametre Değerlerini Girin")
+input_values = {}
+for param in df_limits["Parametre"]:
+    val = st.sidebar.text_input(f"{param} değeri", "")
+    if val.strip() == "":
+        input_values[param] = None
+    else:
+        try:
+            input_values[param] = float(val.replace(",", "."))
+        except:
+            input_values[param] = None
 
-        tse_res = judge(v, tse_rng)
-        ec_res = judge(v, ec_rng)
-        who_res = judge(v, who_rng)
+# Sonuçları tablo halinde göstermek için:
+tabs = st.tabs(["TSE", "EC", "WHO"])
 
-        results_tse.append({"Parametre": p, "Değer": v, "Durum": tse_res})
-        results_ec.append({"Parametre": p, "Değer": v, "Durum": ec_res})
-        results_who.append({"Parametre": p, "Değer": v, "Durum": who_res})
+for i, std in enumerate(["TSE", "EC", "WHO"]):
+    with tabs[i]:
+        results = []
+        for idx, row in df_limits.iterrows():
+            p = row["Parametre"]
+            v = input_values.get(p, None)
+            limits = parse_range(row[std])
+            status = judge(v, limits)
+            results.append({"Parametre": p, "Değer": v if v is not None else "-", "Durum": status})
+        st.table(pd.DataFrame(results))
 
-    st.subheader("TSE Sonuçları")
-    st.dataframe(pd.DataFrame(results_tse))
 
-    st.subheader("EC Sonuçları")
-    st.dataframe(pd.DataFrame(results_ec))
-
-    st.subheader("WHO Sonuçları")
-    st.dataframe(pd.DataFrame(results_who))
