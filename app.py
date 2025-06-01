@@ -49,8 +49,6 @@ def judge(value, limit_range):
     else:
         return "Uygun Değil"
 
-st.set_page_config(page_title="Su Kalite Testi", layout="wide")
-
 st.title("Su Kalite Testi")
 
 df_limits = fetch_limits()
