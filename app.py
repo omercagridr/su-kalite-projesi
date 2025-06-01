@@ -8,6 +8,7 @@ from PIL import Image
 st.set_page_config(page_title="Su Kalite Testi", layout="wide")
 
 CSV_FILE = "su_kalite_standartlari.txt"
+LOGO_PATH = "mar_logo.png"
 
 @st.cache_data
 def fetch_limits():
