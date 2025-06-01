@@ -1,42 +1,68 @@
 import streamlit as st
 import pandas as pd
-import requests
 
 st.set_page_config(page_title="Su Kalite Testi", layout="wide")
 
-# Veri URL'si (CSV dosyası)
 URL = "https://dobisu.marmara.edu.tr/orta-menu/yararli-bilgiler/icme-suyu-kabul-edilebilir-degerler"
 
 @st.cache_data
 def fetch_limits():
-    df = pd.read_csv(URL)
-    # Sütun isimlerini düzenle
-    df.rename(columns={df.columns[0]: "Parametre",
-                       df.columns[1]: "TSE",
-                       df.columns[2]: "EC",
-                       df.columns[3]: "WHO"}, inplace=True)
-    df = df.dropna(subset=["Parametre"]).reset_index(drop=True)
-
-    # İstenmeyen satırların filtrelenmesi
-    drop_keywords = ["Kabul Edilebilir", "STANDARTLAR", "Fiziksel ve Duyusal",
-                     "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat"]
-    mask = ~df["Parametre"].str.contains("|".join(drop_keywords), na=False)
-    df = df[mask].reset_index(drop=True)
-    return df
+    # Sayfadaki tüm tabloları çek
+    tables = pd.read_html(URL)
+    
+    # İlk tabloyu (TSE) dataframe olarak al
+    df_tse = tables[0]
+    df_ec = tables[1]
+    df_who = tables[2]
+    
+    # Burada sadece ilk tabloyu baz alarak işleyelim
+    # Parametre kolonuna göre filtreleme yapacağız
+    
+    # Parametre listesini ortak alalım (hepsi aynı sırada ve isimde)
+    parametreler = df_tse.iloc[:,0].tolist()
+    
+    # Fonksiyon ile tabloları düzenle
+    def clean_table(df):
+        df = df.rename(columns={df.columns[0]: "Parametre",
+                                df.columns[1]: "Değer"})
+        df = df.dropna(subset=["Parametre"])
+        drop_keywords = ["Kabul Edilebilir", "STANDARTLAR", "Fiziksel ve Duyusal",
+                         "EMS/100", "Organoleptik", "Renk", "Bulanıklık", "Koku", "Tat"]
+        mask = ~df["Parametre"].str.contains("|".join(drop_keywords), na=False)
+        df = df[mask].reset_index(drop=True)
+        return df
+    
+    df_tse_clean = clean_table(df_tse)
+    df_ec_clean = clean_table(df_ec)
+    df_who_clean = clean_table(df_who)
+    
+    # Birleştirirken sadece Parametre ve değer sütunlarını alıyoruz
+    df_limits = pd.DataFrame({
+        "Parametre": df_tse_clean["Parametre"],
+        "TSE": df_tse_clean["Değer"],
+        "EC": df_ec_clean["Değer"],
+        "WHO": df_who_clean["Değer"],
+    })
+    return df_limits
 
 def parse_range(r):
     if pd.isna(r):
         return (None, None)
-    # Aralık örneği: "0,0 - 0,5" veya sadece tek sayı "0,5"
     r = str(r).strip()
     if "-" in r:
         low, high = r.split("-")
         low = low.strip().replace(",", ".")
         high = high.strip().replace(",", ".")
-        return (float(low), float(high))
+        try:
+            return (float(low), float(high))
+        except:
+            return (None, None)
     else:
         val = r.replace(",", ".")
-        return (0.0, float(val))
+        try:
+            return (0.0, float(val))
+        except:
+            return (None, None)
 
 def judge(value, limit_range):
     if value is None or limit_range == (None, None):
@@ -53,7 +79,7 @@ st.title("Su Kalite Testi")
 
 df_limits = fetch_limits()
 
-# Kullanıcıdan değer girişi (parametreler için)
+# Kullanıcıdan parametre bazında değer al
 input_values = {}
 for p in df_limits["Parametre"]:
     v = st.number_input(f"{p} değerini giriniz:", format="%.3f", key=p)
@@ -61,10 +87,8 @@ for p in df_limits["Parametre"]:
 
 st.write("---")
 
-# Tabloları üç sekmede göstermek için
 tabs = st.tabs(["TSE", "EC", "WHO"])
 
-# Fonksiyon sonuçları için ortak yapı
 def create_results(column_name):
     results = []
     for i, row in df_limits.iterrows():
