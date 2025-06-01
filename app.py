@@ -33,18 +33,20 @@ for i, row in limits_df.iterrows():
 def parse_range(r):
     if pd.isna(r):
         return (None, None)
+    s = str(r).strip().replace(",", ".")
+    # Eğer "ND" gibi okunmayan ifadeler varsa
+    if any(x in s.upper() for x in ["ND", "N/A", "—", "-"]):
+        return (None, None)
     try:
-        s = str(r).replace(",", ".").strip()
         if "-" in s:
             low_str, high_str = s.split("-")
             low = float(low_str)
             high = float(high_str)
             return (low, high)
         else:
-            # Tek değer varsa, düşük sınırı 0 kabul edelim
             high = float(s)
             return (0.0, high)
-    except Exception:
+    except:
         return (None, None)
 
 def judge(v, rng):
