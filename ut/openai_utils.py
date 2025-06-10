@@ -22,7 +22,7 @@ def get_ai_comment(input_values, df_limits):
         {"role": "user", "content": f"Kullanıcı tarafından girilen su değerleri şunlardır: {input_values}. Standart limitler şunlardır: {df_limits.to_dict(orient='records')}"}
     ]
 
-    client = openai(api_key=os.getenv("OPENAI_API_KEY"))
+    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     response = client.chat.completions.create(
         model="gpt-4o",
